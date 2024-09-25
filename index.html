@@ -5,6 +5,7 @@
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
     crossorigin="anonymous"
   />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata:400,400i,700" />
   <link rel="stylesheet" href="styles.css" />
@@ -14,13 +15,14 @@
 
 <body>
   <div class="main-container container-fluid dark-theme">
-    <!-- Tabs Section -->
-    <div class="tab-container">
-      <ul id="tabList" class="nav nav-pills justify-content-left">
-        <li class="nav-item" style="width: 43px;">
-          <a class="nav-link active" href="#treatment0" data-toggle="tab">0</a>
-        </li>
-      </ul>
+
+    <!-- History Section -->
+    <div class="history-container">
+      <div id="historyList" class="list-group">
+        <div class="history-header">
+          <h3>History</h3>
+        </div>
+      </div>
     </div>
 
     <div class="content-container active" id="treatment0">
@@ -34,7 +36,7 @@
             <table class="table table-bordered table-hover mb-0">
               <thead class="thead-dark">
                 <tr>
-                  <th>Index</th>
+                  <th style="width: 4.25rem;">Index</th>
                   <th>Text</th>
                 </tr>
               </thead>
@@ -49,29 +51,31 @@
         <div class="row mb-3">
           <div class="col-md-6">
             <label for="remove-filter0" class="filter-label">Remove:</label>
-            <input type="text" class="form-control bg-dark text-white" id="remove-filter0" placeholder="Enter text to remove" data-treatment-index="0" oninput="removePreview(event);"/>
+            <input type="text" class="form-control text-white" id="remove-filter0" placeholder="Enter text to remove" filter-type="remove-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
           </div>
           <div class="col-md-6">
-            <label for="parse-out-filter0" class="filter-label">Parse out:</label>
-            <input type="text" class="form-control bg-dark text-white" id="parse-out-filter0" placeholder="Enter text to parse out" />
+            <label for="parse-filter0" class="filter-label">Parse out:</label>
+            <input type="text" class="form-control text-white" id="parse-filter0" placeholder="Enter text to parse out" filter-type="parse-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
           </div>
         </div>
 
         <div class="row mb-3">
           <div class="col-md-6">
             <label for="find-filter0" class="filter-label">Find:</label>
-            <input type="text" class="form-control bg-dark text-white" id="find-filter0" placeholder="Enter text to find" />
+            <input type="text" class="form-control text-white" id="find-filter0" placeholder="Enter text to find" filter-type="find-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
           </div>
           <div class="col-md-6">
             <label for="replace-filter0" class="filter-label">Replace:</label>
-            <input type="text" class="form-control bg-dark text-white" id="replace-filter0" placeholder="Enter replacement text" />
+            <input type="text" class="form-control text-white" id="replace-filter0" placeholder="Enter replacement text" />
           </div>
         </div>
 
         <div class="d-flex justify-content-end">
           <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display: none" onchange="handleFileLoad(event);"/>
-          <button type="button" id="parseButton0" class="btn btn-primary mr-2" onclick="parseTable(0);">Parse</button>
+          <input type="hidden" id="isEdit0" data-treatment-index="0" class="hid hid-edit" value="false">
+          <button type="button" id="parseButton0" data-treatment-index="0" class="btn btn-primary mr-2" onclick="determineParse(event);">Parse</button>
           <button type="button" id="loadDocumentButton" class="btn btn-secondary" onclick="document.getElementById('file-input').click();">Load Document</button>
+          <button type="button" id="cancelButton0" data-treatment-index="0" class="btn btn-danger ml-2" style="display: none" onclick="cancelEditHistory(event);">Cancel</button>
         </div>
       </div>
     </div>

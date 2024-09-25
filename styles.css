@@ -31,21 +31,99 @@ body {
   height: 100%;
   display: flex;
   background-color: var(--eerie-black);
-  padding-left: 0 !important;
-  padding-top: 20px;
+  padding: 20px 15px;
 }
 
-.tab-container {
-  margin-left: 15px;
-  width: 44px;
-  z-index: 1;
+.history-container {
+  width: 25rem;
+  border: 1px solid var(--dim-gray);
+  border-radius: .25rem;
+  overflow-y: auto;
+}
+
+.history-header {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--dim-gray);
+  background-color: var(--gray-dark);
+  color: var(--white);
+}
+
+a.history-list-item {
+  padding: 0.25rem 0.75rem;
+  background-color: var(--eerie-black);
+  color: var(--battleship-gray);
+  border: none;
+  border-bottom: 2px solid var(--dim-gray) !important;
+}
+
+a.history-list-item.active {
+  background-color: var(--onyx) !important;
+}
+
+a.history-list-item:last-child {
+  border-bottom: 1px solid var(--dim-gray) !important;
+}
+
+.history-container > .list-group > a.history-list-item:hover {
+  background-color: var(--onyx);
+  color: var(--white);
+}
+
+.treatment-description-actions {
+  align-items: center;
+}
+
+.treatment-description {
+  display: inline-block;
+  width: 70%;
+}
+
+.text-muted {
+  word-wrap: break-word;
+}
+
+a.history-list-item:hover button.btn.btn-edit,
+a.history-list-item:hover button.btn.btn-delete,
+a.history-list-item:hover button.btn.btn-cancel {
+  background: var(--gray);
+}
+
+button.btn.btn-edit,
+button.btn.btn-delete,
+button.btn.btn-cancel {
+  width: 38px;
+  font-size: 14px;
+}
+
+button.btn.btn-edit {
+  margin-right: 2px;
+}
+
+button.btn.btn-delete {
+  margin-left: 2px;
+}
+
+button.btn.btn-edit:hover,
+button.btn.btn-delete:hover,
+button.btn.btn-cancel:hover {
+  background-color: var(--battleship-gray) !important;
+}
+
+.fa-solid.fa-pen::before,
+.fa-solid.fa-trash::before,
+.fa-solid.fa-ban::before {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 
 .content-container {
   display: none;
   flex-direction: column;
   width: 100%;
-  margin-left: -1px;
+  margin-left: 15px;
 }
 
 .content-container.active {
@@ -57,8 +135,40 @@ body {
   overflow-y: auto;
   padding: 1rem;
   border: 1px solid var(--dim-gray);
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-radius: 0.25rem;
   margin-bottom: 15px;
+
+  /* Scrollbar Styling */
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: var(--dim-gray) var(--onyx); /* For Firefox */
+}
+
+/* Webkit browsers (Chrome, Safari, etc.) */
+.table-container::-webkit-scrollbar {
+  width: 12px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--onyx); /* Background of the scrollbar track */
+  border-radius: 0.25rem;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background-color: var(--dim-gray); /* Color of the scrollbar thumb */
+  border-radius: 0.25rem;
+  border: 3px solid var(--onyx); /* Creates padding around the thumb */
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--gray); /* Darken thumb on hover */
+}
+
+.table-responsive {
+  overflow-x: hidden;
+}
+
+.table {
+  table-layout: fixed;
 }
 
 .table thead {
@@ -87,36 +197,17 @@ th {
 
 td {
   color: var(--white);
+  word-wrap: break-word;
 }
 
 th {
   color: var(--battleship-gray) !important;
 }
 
-.nav {
-  flex-direction: column;
-  width: 20px;
-}
-
-.nav-pills .nav-link {
-  border: 1px solid var(--dim-gray);
-  background-color: var(--onyx);
-  color: var(--battleship-gray);
-  margin-bottom: 5px;
-  border-radius: 0.25rem 0 0 0.25rem !important;
-}
-
-.nav-pills .nav-link.active {
-  background-color: var(--eerie-black) !important;
-  border-color: var(--dim-gray);
-  border-right: none;
-}
-
 .filter-container {
   background-color: var(--onyx) !important;
   border: 1px solid var(--dim-gray) !important;
   color: var(--battleship-gray);
-  margin-bottom: 20px;
 }
 
 .filter-label {
@@ -125,14 +216,19 @@ th {
 }
 
 .form-control {
-  background-color: var(--outer-space);
+  background-color: var(--eerie-black) !important;
   border: 1px solid var(--dim-gray) !important;
   color: var(--battleship-gray);
 }
 
 .form-control:focus {
-  background-color: var(--outer-space) !important;
   border-color: var(--gray-2) !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+}
+
+.form-control:disabled {
+  cursor: not-allowed;
+  background-color: var(--onyx) !important; 
 }
 
 .btn-primary {
