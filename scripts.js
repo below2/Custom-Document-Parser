@@ -5,10 +5,13 @@ var parsedText = [];
 var instructions = [];
 
 // #region Load Document
-const loadDocumentButton = document.getElementById("loadDocumentButton");
-const inputElement = document.getElementById("file-input");
+const inputElement = document.getElementById("fileInput");
 inputElement.type = "file";
 inputElement.accept = ".pdf, .docx, .txt";
+const uploadArea = document.getElementById("uploadArea");
+uploadArea.onclick = function () {
+    inputElement.click();
+}
 
 // Read and parse the selected file
 function handleFileLoad(event) {
@@ -93,146 +96,120 @@ function initText(text) {
 // #endregion
 
 // #region Parse Text
-// Reparse all tables if editing a treatment, parse new table if not
+// Reparse all tables if editing or deleting a treatment, parse new table if not
 function determineParse(event) {
     const _treatmentIndex = event.target.getAttribute("data-treatment-index");
+    const filterType = event.target.getAttribute("filter-type");
     const isEdit = document.getElementById("isEdit" + _treatmentIndex).value === "true";
     
     if (isEdit) {
-        reparseAllTables(_treatmentIndex, true);
+        reparseAllTables(true, _treatmentIndex);
     } else {
-        parseTable(false, null);
+        parseTable(false, null, filterType);
     }
 }
 
 // Reparse all tables with new instructions
-function reparseAllTables(_treatmentIndex, isEdit) {
+function reparseAllTables(isEdit, _treatmentIndex) {
     if (isEdit) {
-        const removeFilter = document.getElementById("remove-filter" + _treatmentIndex).value;
-        const parseFilter = document.getElementById("parse-filter" + _treatmentIndex).value;
-        const findFilter = document.getElementById("find-filter" + _treatmentIndex).value;
-        const replaceFilter = document.getElementById("replace-filter" + _treatmentIndex).value;
+        // If reparsing for edit, capture new filter type and expression
+        const expressionInputA = document.getElementById("expressionInputA" + _treatmentIndex);
+        const expresssionInputB = document.getElementById("expressionInputB" + _treatmentIndex);
+        const filterType = expressionInputA.getAttribute("filter-type");
+        const expressionA = expressionInputA.value;
+        const expressionB = expresssionInputB.value;
         
-        if (removeFilter || parseFilter || (findFilter && replaceFilter)) {
-            if (removeFilter) {
-                instructions[_treatmentIndex] = { label: "Remove", regex: removeFilter, matchCount: 0 };
-            } else if (parseFilter) {
-                instructions[_treatmentIndex] = { label: "Parse", regex: parseFilter, matchCount: 0 };
-            } else if (findFilter && replaceFilter) {
-                instructions[_treatmentIndex] = { label: "Replace", regex: findFilter, replace: replaceFilter, matchCount: 0 };
-            }
+        if (filterType) {
+            instructions[_treatmentIndex] = { filterType: filterType, regex: expressionA, matchCount: 0, replaceText: expressionB, treatmentLabel: filterType.charAt(0).toUpperCase() + filterType.slice(1) };
         } else {
-            alert("Please enter a filter to parse the text.");
+            alert("Please select an operation and enter an expression to parse the text.");
         }
     } else {
+        // If reparsing for delete, remove instruction
         instructions.splice(_treatmentIndex, 1);
     }
 
+    // Reset all tables, history, and parsedText
     resetAll();
-    treatmentIndex = 0;
-    parsedText = [...originalParsedText]
-
-    addTextToTable();
-    instructions.forEach((instruction) => {
-        parseTable(true, instruction);
-    });
-
-    readdFilterPreviews();
+    // Reparse all tables using instructions
+    loadFromInstructions();
 }
 
-// Applies given treatment to parsedText, tracks instructions
-function parseTable(isEdit, instruction) {
-    var removeFilter, parseFilter, findFilter, replaceFilter;
+// Applies treatment and tracks instructions
+function parseTable(isEdit, instruction, filterType) {
+    // Init regex expressions and match count
+    let filterRegex, replaceText;
     if (isEdit) {
-        switch (instruction.label) {
-            case "Remove":
-                removeFilter = instruction.regex;
+        filterRegex = instruction.regex;
+        replaceText = instruction.replaceText;
+    } else {
+        filterRegex = document.getElementById("expressionInputA" + treatmentIndex).value;
+        replaceText = document.getElementById("expressionInputB" + treatmentIndex).value;
+    }
+    const re = new RegExp(filterRegex, "g");
+    let matches = 0;
+
+    // Apply treatment to parsedText
+    if (filterRegex) {
+        switch (filterType) {
+            case "remove":
+                parsedText.forEach((line, index) => {
+                    if (re.test(line.text)) {
+                        parsedText[index] = {
+                            text: line.text.replace(re, (match) => {
+                                if (match !== "") {
+                                    matches++;
+                                    return "";
+                                }
+                                return match;
+                            }),
+                            column: line.column,
+                        };
+                    }
+                });
                 break;
-            case "Parse":
-                parseFilter = instruction.regex;
+            case "extract":
+                var _parsedText = [];
+                parsedText.forEach((line) => {
+                    Array.from(line.text.matchAll(re)).forEach((match) => {
+                        if (match[0] !== "") {
+                            matches++;
+                            _parsedText.push({ text: match[0], column: line.column });
+                        }
+                    });
+                });
+                parsedText = _parsedText;
                 break;
-            case "Replace":
-                findFilter = instruction.regex;
-                replaceFilter = instruction.replace;
+            case "replace":
+                parsedText.forEach((line, index) => {
+                    if (re.test(line.text)) {
+                        parsedText[index] = {
+                            text: line.text.replace(re, (match) => {
+                                if (match !== "") {
+                                    matches++;
+                                    return replaceText;
+                                }
+                                return match;
+                            }),
+                            column: line.column,
+                        };
+                    }
+                });
                 break;
             default:
                 break;
         }
-    } else {
-        removeFilter = document.getElementById("remove-filter" + treatmentIndex).value;
-        parseFilter = document.getElementById("parse-filter" + treatmentIndex).value;
-        findFilter = document.getElementById("find-filter" + treatmentIndex).value;
-        replaceFilter = document.getElementById("replace-filter" + treatmentIndex).value;
-    }
-    var matches = 0;
 
-    if (removeFilter || parseFilter || (findFilter && replaceFilter)) {
-        // Remove
-        if (removeFilter) {
-            const re = new RegExp(removeFilter, "g");
-            parsedText.forEach((line, index) => {
-                if (re.test(line.text)) {
-                    parsedText[index] = {
-                        text: line.text.replace(re, (match) => {
-                            if (match !== "") {
-                                matches++;
-                                return "";
-                            }
-                            return match;
-                        }),
-                        column: line.column,
-                    };
-                }
-            });
-            if (!isEdit) {
-                instructions.push({ label: "Remove", regex: removeFilter, matchCount: matches });
-            } else {
-                instructions[treatmentIndex].matchCount = matches;
-            }
+        // Tracks instructions
+        if (!isEdit) {
+            instructions.push({ filterType: filterType, regex: filterRegex, matchCount: matches, replaceText: replaceText, treatmentLabel: filterType.charAt(0).toUpperCase() + filterType.slice(1) });
+        } else {
+            instructions[treatmentIndex].matchCount = matches;
         }
-        // Parse out
-        else if (parseFilter) {
-            const re = new RegExp(parseFilter, "g");
-            var _parsedText = [];
-            parsedText.forEach((line) => {
-                Array.from(line.text.matchAll(re)).forEach((match) => {
-                    if (match[0] !== "") {
-                        matches++;
-                        _parsedText.push({ text: match[0], column: line.column });
-                    }
-                });
-            });
-            parsedText = _parsedText;
-            if (!isEdit) {
-                instructions.push({ label: "Parse", regex: parseFilter, matchCount: matches });
-            } else {
-                instructions[treatmentIndex].matchCount = matches;
-            }
-        }
-        // Find/Replace
-        else if (findFilter && replaceFilter) {
-            const re = new RegExp(findFilter, "g");
-            parsedText.forEach((line, index) => {
-                if (re.test(line.text)) {
-                    parsedText[index] = {
-                        text: line.text.replace(re, (match) => {
-                            if (match !== "") {
-                                matches++;
-                                return replaceFilter;
-                            }
-                            return match;
-                        }),
-                        column: line.column,
-                    };
-                }
-            });
-            if (!isEdit) {
-                instructions.push({ label: "Replace", regex: findFilter, replace: replaceFilter, matchCount: matches });
-            } else {
-                instructions[treatmentIndex].matchCount = matches;
-            }
-        }
+
         parsedText = parsedText.filter(item => item.text); // Removes all empty entries after each treatment, might want to remove or make a separate treatment option?
+
+        // Adds treatment to UI
         addTreatment();
         addTextToTable();
     } else {
@@ -242,7 +219,7 @@ function parseTable(isEdit, instruction) {
 
 // Add parsed text to the table
 function addTextToTable() {
-    document.getElementById("noTextLoaded").style.display = "none";
+    document.getElementById("uploadArea").style.display = "none";
     document.getElementById("textTable" + treatmentIndex).style.display = "block";
 
     const tableBody = document.getElementById("tableBody" + treatmentIndex);
@@ -284,12 +261,12 @@ function readdFilterPreviews() {
             if (re.test(text)) {
                 const newHTML = text.replace(re, (match) => {
                     if (match !== "") {
-                        switch (instruction.label) {
-                            case "Remove":
+                        switch (instruction.filterType) {
+                            case "remove":
                                 return `<span style="background-color: red; border: 1px solid black; white-space: pre-wrap;">${match}</span>`;
-                            case "Parse":
+                            case "extract":
                                 return `<span style="background-color: green; border: 1px solid black; white-space: pre-wrap;">${match}</span>`;
-                            case "Replace":
+                            case "replace":
                                 return `<span style="background-color: blue; border: 1px solid black; white-space: pre-wrap;">${match}</span>`;
                             default:
                                 break;
@@ -307,11 +284,44 @@ function readdFilterPreviews() {
 // #endregion
 
 // #region HTML-only functions
+// Sets filter-type attribute of expressionInput
+function setFilterType(event) {
+    const filterType = event.target.getAttribute("filter-type");
+    const _treatmentIndex = event.target.getAttribute("data-treatment-index");
+
+    const expressionInput = document.getElementById("expressionInputA" + _treatmentIndex);
+    expressionInput.setAttribute("filter-type", filterType);
+    expressionInput.disabled = false;
+
+    const parseButton = document.getElementById("parseButton" + _treatmentIndex);
+    parseButton.setAttribute("filter-type", filterType);
+
+    if (filterType === "replace") {
+        const replaceInput = document.getElementById("expressionInputB" + _treatmentIndex);
+        replaceInput.style.display = "block";
+        replaceInput.parentNode.classList.add("d-flex");
+
+        expressionInput.classList.add("unround");
+        replaceInput.classList.add("unround");
+        expressionInput.classList.add("unround-right");
+        replaceInput.classList.add("unround-left");
+    } else {
+        const replaceInput = document.getElementById("expressionInputB" + _treatmentIndex);
+        replaceInput.style.display = "none";
+        replaceInput.parentNode.classList.remove("d-flex");
+
+        expressionInput.classList.remove("unround");
+        replaceInput.classList.remove("unround");
+        expressionInput.classList.remove("unround-right");
+        replaceInput.classList.remove("unround-left");
+    }
+}
+
 // Adds inline styling to table to preview treatment
 function filterPreview(event) {
     const filterType = event.target.getAttribute("filter-type");
     const _treatmentIndex = event.target.getAttribute("data-treatment-index");
-    const filter = document.getElementById(filterType + _treatmentIndex).value;
+    const filter = document.getElementById("expressionInputA" + _treatmentIndex).value;
 
     const tableBody = document.getElementById("tableBody" + _treatmentIndex);
     const rows = tableBody.getElementsByTagName("tr");
@@ -337,11 +347,11 @@ function filterPreview(event) {
                 const newHTML = text.replace(re, (match) => {
                     if (match !== "") {
                         switch (filterType) {
-                            case "remove-filter":
+                            case "remove":
                                 return `<span style="background-color: red; border: 1px solid black; white-space: pre-wrap;">${match}</span>`;
-                            case "parse-filter":
+                            case "extract":
                                 return `<span style="background-color: green; border: 1px solid black; white-space: pre-wrap;">${match}</span>`;
-                            case "find-filter":
+                            case "replace":
                                 return `<span style="background-color: blue; border: 1px solid black; white-space: pre-wrap;">${match}</span>`;
                             default:
                                 break;
@@ -357,42 +367,52 @@ function filterPreview(event) {
     } catch (e) {}
 }
 
-function setFilters(index, isEdit) {
-    const removeFilter = document.getElementById("remove-filter" + index);
-    const parseFilter = document.getElementById("parse-filter" + index);
-    const findFilter = document.getElementById("find-filter" + index);
-    const replaceFilter = document.getElementById("replace-filter" + index);
+function setFilters(_treatmentIndex, isEdit) {
+    const expressionInputA = document.getElementById("expressionInputA" + _treatmentIndex);
+    const expressionInputB = document.getElementById("expressionInputB" + _treatmentIndex);
 
-    switch (instructions[index].label) {
-        case "Remove":
-            removeFilter.value = instructions[index].regex;
+    // Set value of expressionInputA and expressionInputB
+    expressionInputA.value = instructions[_treatmentIndex].regex;
+    expressionInputB.value = instructions[_treatmentIndex].replaceText;
+    
+    // Remove all active filters
+    const allFilters = document.querySelectorAll(".treatment-type");
+    allFilters.forEach((filter) => {
+        filter.classList.remove("active");
+    });
+
+    // Set active filter
+    switch (instructions[_treatmentIndex].filterType) {
+        case "remove":
+            const removeFilter = document.getElementById("removeFilter" + _treatmentIndex);
+            removeFilter.parentNode.classList.add("active");
+            expressionInputA.setAttribute("filter-type", "remove");
             break;
-        case "Parse":
-            parseFilter.value = instructions[index].regex;
+        case "extract":
+            const extractFilter = document.getElementById("extractFilter" + _treatmentIndex);
+            extractFilter.parentNode.classList.add("active");
+            expressionInputA.setAttribute("filter-type", "extract");
             break;
-        case "Replace":
-            findFilter.value = instructions[index].regex;
-            replaceFilter.value = instructions[index].replace;
+        case "replace":
+            const replaceFilter = document.getElementById("replaceFilter" + _treatmentIndex);
+            replaceFilter.parentNode.classList.add("active");
+            expressionInputA.setAttribute("filter-type", "replace");
             break;
         default:
             break;
     }
 
-    removeFilter.disabled = !isEdit;
-    parseFilter.disabled = !isEdit;
-    findFilter.disabled = !isEdit;
-    replaceFilter.disabled = !isEdit;
-
+    const treatmentTypeContainer = document.getElementById("treatmentTypeContainer" + _treatmentIndex);
     if (!isEdit) {
-        removeFilter.placeholder = "";
-        parseFilter.placeholder = "";
-        findFilter.placeholder = "";
-        replaceFilter.placeholder = "";
+        // If not editing, disable operation and expression input
+        treatmentTypeContainer.classList.add("disabled");
+        expressionInputA.disabled = true;
+        expressionInputB.disabled = true;
     } else {
-        removeFilter.placeholder = "Enter text to remove";
-        parseFilter.placeholder = "Enter text to parse out";
-        findFilter.placeholder = "Enter text to find";
-        replaceFilter.placeholder = "Enter replacement text";
+        // If editing, enable operation and expression input
+        treatmentTypeContainer.classList.remove("disabled");
+        expressionInputA.disabled = false;
+        expressionInputB.disabled = false;
     }
 }
 
@@ -405,13 +425,18 @@ function setupEditHistory(event) {
     resetActiveTable();
     document.getElementById("treatment" + _treatmentIndex).classList.add("active");
 
-    // Show/hide history buttons
+    // Show/hide buttons
     document.getElementById("editHistory" + _treatmentIndex).style.display = "none";
     document.getElementById("deleteHistory" + _treatmentIndex).style.display = "none";
     document.getElementById("cancelEditHistory" + _treatmentIndex).style.display = "inline-block";
-    // Show cancel button
     document.getElementById("cancelButton" + _treatmentIndex).style.display = "inline-block";
-    
+
+    document.getElementById("cancelButton" + _treatmentIndex).parentNode.classList.remove("col-md-1");
+    document.getElementById("cancelButton" + _treatmentIndex).parentNode.classList.add("col-md-2");
+    document.getElementById("expressionInputA" + _treatmentIndex).parentNode.classList.remove("col-md-10");
+    document.getElementById("expressionInputA" + _treatmentIndex).parentNode.classList.add("col-md-9");
+    document.getElementById("isEdit" + _treatmentIndex).parentNode.classList.add("d-flex");
+
     // Set hidden edit flag
     document.getElementById("isEdit" + _treatmentIndex).value = "true";
 
@@ -431,7 +456,7 @@ function deleteHistory(event) {
     resetActiveTable();
     document.getElementById("treatment" + _treatmentIndex).classList.add("active");
 
-    reparseAllTables(_treatmentIndex, false);
+    reparseAllTables(false, _treatmentIndex);
 
     // Prevent event from bubbling up
     event.stopPropagation();
@@ -440,12 +465,17 @@ function deleteHistory(event) {
 function cancelEditHistory(event) {
     const _treatmentIndex = event.target.getAttribute("data-treatment-index");
 
-    // Show/hide history buttons
+    // Show/hide buttons
     document.getElementById("editHistory" + _treatmentIndex).style.display = "inline-block";
     document.getElementById("deleteHistory" + _treatmentIndex).style.display = "inline-block";
     document.getElementById("cancelEditHistory" + _treatmentIndex).style.display = "none";
-    // Hide cancel button
     document.getElementById("cancelButton" + _treatmentIndex).style.display = "none";
+
+    document.getElementById("cancelButton" + _treatmentIndex).parentNode.classList.remove("col-md-2");
+    document.getElementById("cancelButton" + _treatmentIndex).parentNode.classList.add("col-md-1");
+    document.getElementById("expressionInputA" + _treatmentIndex).parentNode.classList.remove("col-md-9");
+    document.getElementById("expressionInputA" + _treatmentIndex).parentNode.classList.add("col-md-10");
+    document.getElementById("isEdit" + _treatmentIndex).parentNode.classList.remove("d-flex");
 
     // Set hidden edit flag
     document.getElementById("isEdit" + _treatmentIndex).value = "false";
@@ -477,7 +507,7 @@ function addHistory() {
     // Create new step
     const historyList = document.getElementById("historyList");
     var newHistory = `
-    <a id="historyTab${treatmentIndex - 1}" href="#treatment${treatmentIndex - 1}" class="history-list-item list-group-item list-group-item-action flex-column align-items-start" data-toggle="tab" onclick="setFilters(${treatmentIndex - 1}, false);resetEditFields();">
+    <a id="historyTab${treatmentIndex - 1}" href="#treatment${treatmentIndex - 1}" class="history-list-item list-group-item list-group-item-action flex-column align-items-start" data-toggle="tab" onclick="setFilters(${treatmentIndex - 1}, false);resetEditFields(${treatmentIndex - 1});">
         <div class="d-flex w-100 justify-content-between">
             <h5 class="mb-1">Treatment #${treatmentIndex}</h5>
             <small class="text-muted">${instructions[treatmentIndex - 1].matchCount} macthes</small>
@@ -485,13 +515,13 @@ function addHistory() {
         <div class="treatment-description-actions d-flex w-100 justify-content-between">
             <div class="treatment-description">
     `;
-    if (instructions[treatmentIndex - 1].replace) {
+    if (instructions[treatmentIndex - 1].replaceText !== "") {
         newHistory += `
-                <small class="text-muted">${instructions[treatmentIndex - 1].label}: ${instructions[treatmentIndex - 1].regex}, ${instructions[treatmentIndex - 1].replace}</small>
+                <small class="text-muted">${instructions[treatmentIndex - 1].treatmentLabel}: ${instructions[treatmentIndex - 1].regex}, ${instructions[treatmentIndex - 1].replaceText}</small>
         `;
     } else {
         newHistory += `
-                <small class="text-muted">${instructions[treatmentIndex - 1].label}: ${instructions[treatmentIndex - 1].regex}</small>
+                <small class="text-muted">${instructions[treatmentIndex - 1].treatmentLabel}: ${instructions[treatmentIndex - 1].regex}</small>
         `;
     }
     newHistory += `
@@ -507,7 +537,7 @@ function addHistory() {
 
     // Create new current step
     newHistory += `
-    <a href="#treatment${treatmentIndex}" class="current-treatment history-list-item list-group-item list-group-item-action flex-column align-items-start active" data-toggle="tab">
+    <a href="#treatment${treatmentIndex}" class="current-treatment history-list-item list-group-item list-group-item-action flex-column align-items-start active" data-toggle="tab" onclick="resetEditFields(${treatmentIndex});">
           <div class="d-flex w-100 justify-content-between">
             <h5 class="mb-1 mt-1">Current treatment</h5>
           </div>
@@ -523,60 +553,87 @@ function addTable() {
     // Create new active content container
     const mainContainer = document.querySelector(".main-container");
     const newContentContainer = `
-    <div class="content-container active" id="treatment${treatmentIndex}">
+    <div id="treatment${treatmentIndex}" class="content-container active">
       <!-- Table Section -->
       <div class="table-container">
-        <div class="tab-pane fade show">
-          <div class="table-responsive" id="textTable${treatmentIndex}">
-            <table class="table table-bordered table-hover mb-0">
-              <thead class="thead-dark">
-                <tr>
-                  <th style="width: 4.25rem;">Index</th>
-                  <th>Text</th>
-                </tr>
-              </thead>
-              <tbody class="table-body" id="tableBody${treatmentIndex}"></tbody>
-            </table>
-          </div>
+        <div id="textTable${treatmentIndex}" class="table-responsive" style="display: none">
+          <table class="table table-bordered table-hover mb-0">
+            <thead class="thead-dark">
+              <tr>
+                <th style="width: 4.25rem;">Index</th>
+                <th>Text</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody${treatmentIndex}" class="table-body"></tbody>
+          </table>
         </div>
       </div>
 
       <!-- Filter Section -->
       <div class="filter-container card p-3">
+        
         <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="remove-filter${treatmentIndex}" class="filter-label">Remove:</label>
-            <input type="text" class="form-control text-white" id="remove-filter${treatmentIndex}" placeholder="Enter text to remove" filter-type="remove-filter" data-treatment-index="${treatmentIndex}" oninput="filterPreview(event);"/>
+          <div class="operation-label-container col-md-1">
+            <label class="operation-label">Operation:</label>
           </div>
-          <div class="col-md-6">
-            <label for="parse-filter${treatmentIndex}" class="filter-label">Parse out:</label>
-            <input type="text" class="form-control text-white" id="parse-filter${treatmentIndex}" placeholder="Enter text to parse out" filter-type="parse-filter" data-treatment-index="${treatmentIndex}" oninput="filterPreview(event);"/>
+          
+          <div class="col-md-11">
+            <div id="treatmentTypeContainer${treatmentIndex}" class="treatment-type-container btn-group btn-group-toggle" data-toggle="buttons">
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="removeFilter${treatmentIndex}" autocomplete="off" filter-type="remove" data-treatment-index="${treatmentIndex}" onchange="setFilterType(event);"> Remove
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="extractFilter${treatmentIndex}" autocomplete="off" filter-type="extract" data-treatment-index="${treatmentIndex}" onchange="setFilterType(event);"> Extract
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="replaceFilter${treatmentIndex}" autocomplete="off" filter-type="replace" data-treatment-index="${treatmentIndex}" onchange="setFilterType(event);"> Find/Replace
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="splitFilter${treatmentIndex}" autocomplete="off" filter-type="split" data-treatment-index="${treatmentIndex}" onchange="setFilterType(event);"> Split
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="combineFilter${treatmentIndex}" autocomplete="off" filter-type="combine" data-treatment-index="${treatmentIndex}" onchange="setFilterType(event);"> Combine
+              </label>
+            </div>
           </div>
         </div>
-
+        
         <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="find-filter${treatmentIndex}" class="filter-label">Find:</label>
-            <input type="text" class="form-control text-white" id="find-filter${treatmentIndex}" placeholder="Enter text to find" filter-type="find-filter" data-treatment-index="${treatmentIndex}" oninput="filterPreview(event);"/>
+          <div class="expression-label-container col-md-1">
+            <label class="expression-label">Expression:</label>
           </div>
-          <div class="col-md-6">
-            <label for="replace-filter${treatmentIndex}" class="filter-label">Replace:</label>
-            <input type="text" class="form-control text-white" id="replace-filter${treatmentIndex}" placeholder="Enter replacement text" />
+          
+          <div class="col-md-10">
+            <input type="text" id="expressionInputA${treatmentIndex}" class="expression-input-a form-control text-white" placeholder="" filter-type="" data-treatment-index="${treatmentIndex}" oninput="filterPreview(event);" disabled/>
+            <input type="text" id="expressionInputB${treatmentIndex}" class="expression-input-b form-control text-white" placeholder="" data-treatment-index="${treatmentIndex}" style="display: none;"/>
+          </div>
+          
+          <div class="action-button-container col-md-1">
+            <input type="hidden" id="isEdit${treatmentIndex}" class="hid hid-edit" data-treatment-index="${treatmentIndex}" value="false">
+            <button type="button" id="parseButton${treatmentIndex}" class="action-button btn btn-success" data-treatment-index="${treatmentIndex}" onclick="determineParse(event);">Parse</button>
+            <button type="button" id="cancelButton${treatmentIndex}" class="action-button btn btn-danger ml-2" data-treatment-index="${treatmentIndex}" onclick="cancelEditHistory(event);" style="display: none;">Cancel</button>
           </div>
         </div>
-
-        <div class="d-flex justify-content-end">
-          <input type="hidden" id="isEdit${treatmentIndex}" data-treatment-index="${treatmentIndex}" value="false">
-          <button type="button" id="parseButton${treatmentIndex}" data-treatment-index="${treatmentIndex}" class="btn btn-primary mr-2" onclick="determineParse(event);">Parse</button>
-          <button type="button" id="cancelButton${treatmentIndex}" data-treatment-index="${treatmentIndex}" class="btn btn-danger ml-2" style="display: none" onclick="cancelEditHistory(event);">Cancel</button>
-        </div>
+        
       </div>
     </div>
     `;
     mainContainer.innerHTML += newContentContainer;
 }
 
+function loadFromInstructions() {
+    addTextToTable();
+    instructions.forEach((instruction, index) => {
+        parseTable(true, instruction, instruction.filterType);
+        resetEditFields(index);
+    });
+    readdFilterPreviews();
+}
+
 function resetAll() {
+    // Reset global vars (except originalParsedText and instructions)
+    treatmentIndex = 0;
+    parsedText = [...originalParsedText]
     // Remove all history items
     const historyItems = document.querySelectorAll("a.history-list-item");
     historyItems.forEach((item) => {
@@ -590,56 +647,75 @@ function resetAll() {
     // Add inital history item
     const mainContainer = document.querySelector(".main-container");
     mainContainer.innerHTML += `
-        <div class="content-container active" id="treatment0">
+    <div id="treatment0" class="content-container active">
+      <!-- Table Section -->
       <div class="table-container">
-        <div class="tab-pane fade show">
-          <div class="text-center" id="noTextLoaded">
-            <h3>To start building your custom document parser, click "Load Document"</h3>
+        <div id="uploadArea" class="upload-area">
+          <input type="file" id="fileInput" class="d-none" onchange="handleFileLoad(event);">
+          <div class="upload-placeholder">
+            <i class="fa-solid fa-cloud-arrow-up mb-2"></i>
+            <p><strong>Choose a file</strong> or drag it here</p>
           </div>
-          <div class="table-responsive" id="textTable0" style="display: none">
-            <table class="table table-bordered table-hover mb-0">
-              <thead class="thead-dark">
-                <tr>
-                  <th style="width: 4.25rem;">Index</th>
-                  <th>Text</th>
-                </tr>
-              </thead>
-              <tbody class="table-body" id="tableBody0"></tbody>
-            </table>
-          </div>
+        </div>
+        <div id="textTable0" class="table-responsive" style="display: none">
+          <table class="table table-bordered table-hover mb-0">
+            <thead class="thead-dark">
+              <tr>
+                <th style="width: 4.25rem;">Index</th>
+                <th>Text</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody0" class="table-body"></tbody>
+          </table>
         </div>
       </div>
 
+      <!-- Filter Section -->
       <div class="filter-container card p-3">
+        
         <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="remove-filter0" class="filter-label">Remove:</label>
-            <input type="text" class="form-control text-white" id="remove-filter0" placeholder="Enter text to remove" filter-type="remove-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
+          <div class="operation-label-container col-md-1">
+            <label class="operation-label">Operation:</label>
           </div>
-          <div class="col-md-6">
-            <label for="parse-filter0" class="filter-label">Parse out:</label>
-            <input type="text" class="form-control text-white" id="parse-filter0" placeholder="Enter text to parse out" filter-type="parse-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
+          
+          <div class="col-md-11">
+            <div id="treatmentTypeContainer0" class="treatment-type-container btn-group btn-group-toggle" data-toggle="buttons">
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="removeFilter0" autocomplete="off" filter-type="remove" data-treatment-index="0" onchange="setFilterType(event);"> Remove
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="extractFilter0" autocomplete="off" filter-type="extract" data-treatment-index="0" onchange="setFilterType(event);"> Extract
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="replaceFilter0" autocomplete="off" filter-type="replace" data-treatment-index="0" onchange="setFilterType(event);"> Find/Replace
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="splitFilter0" autocomplete="off" filter-type="split" data-treatment-index="0" onchange="setFilterType(event);"> Split
+              </label>
+              <label class="treatment-type btn btn-outline-secondary">
+                <input type="radio" id="combineFilter0" autocomplete="off" filter-type="combine" data-treatment-index="0" onchange="setFilterType(event);"> Combine
+              </label>
+            </div>
           </div>
         </div>
-
+        
         <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="find-filter0" class="filter-label">Find:</label>
-            <input type="text" class="form-control text-white" id="find-filter0" placeholder="Enter text to find" filter-type="find-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
+          <div class="expression-label-container col-md-1">
+            <label class="expression-label">Expression:</label>
           </div>
-          <div class="col-md-6">
-            <label for="replace-filter0" class="filter-label">Replace:</label>
-            <input type="text" class="form-control text-white" id="replace-filter0" placeholder="Enter replacement text" />
+          
+          <div class="col-md-10">
+            <input type="text" id="expressionInputA0" class="expression-input-a form-control text-white" placeholder="" filter-type="" data-treatment-index="0" oninput="filterPreview(event);" disabled/>
+            <input type="text" id="expressionInputB0" class="expression-input-b form-control text-white d-none" placeholder="" data-treatment-index="0" style="display: none;"/>
+          </div>
+          
+          <div class="action-button-container col-md-1">
+            <input type="hidden" id="isEdit0" class="hid hid-edit" data-treatment-index="0" value="false">
+            <button type="button" id="parseButton0" class="action-button btn btn-success" data-treatment-index="0" onclick="determineParse(event);">Parse</button>
+            <button type="button" id="cancelButton0" class="action-button btn btn-danger ml-2" data-treatment-index="0" onclick="cancelEditHistory(event);" style="display: none;">Cancel</button>
           </div>
         </div>
-
-        <div class="d-flex justify-content-end">
-          <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display: none" onchange="handleFileLoad(event);"/>
-          <input type="hidden" id="isEdit0" data-treatment-index="0" class="hid hid-edit" value="false">
-          <button type="button" id="parseButton0" data-treatment-index="0" class="btn btn-primary mr-2" onclick="determineParse(event);">Parse</button>
-          <button type="button" id="loadDocumentButton" class="btn btn-secondary" onclick="document.getElementById('file-input').click();">Load Document</button>
-          <button type="button" id="cancelButton0" data-treatment-index="0" class="btn btn-danger ml-2" style="display: none" onclick="cancelEditHistory(event);">Cancel</button>
-        </div>
+        
       </div>
     </div>
     `;
@@ -661,29 +737,81 @@ function resetActiveTable() {
     });
 }
 
-function resetEditFields() {
-    // Set all cancel buttons to hidden
-    const cancelHistoryButtons = document.querySelectorAll(".btn.btn-cancel");
-    cancelHistoryButtons.forEach((button) => {
-        button.style.display = "none";
-    });
-    const cancelButtons = document.querySelectorAll(".btn.btn-danger");
-    cancelButtons.forEach((button) => {
-        button.style.display = "none";
-    });
-    // Set all edit and delete buttons to visible
-    const editButtons = document.querySelectorAll(".btn.btn-edit");
-    const deleteButtons = document.querySelectorAll(".btn.btn-delete");
-    editButtons.forEach((button) => {
-        button.style.display = "inline-block";
-    });
-    deleteButtons.forEach((button) => {
-        button.style.display = "inline-block";
-    });
-    // Set all hidden edit flags to false
-    const isEditFlags = document.querySelectorAll(".hid.hid-edit");
-    isEditFlags.forEach((flag) => {
-        flag.value = "false";
-    });
+function resetEditFields(_treatmentIndex) {
+    const expressionInputA = document.getElementById("expressionInputA" + _treatmentIndex);
+    const expressionInputB = document.getElementById("expressionInputB" + _treatmentIndex);
+    const treatmentFilterType = expressionInputA.getAttribute("filter-type");
+    const cancelEditHistoryButton = document.getElementById("cancelEditHistory" + _treatmentIndex);
+    const cancelButton = document.getElementById("cancelButton" + _treatmentIndex);
+    const editHistoryButton = document.getElementById("editHistory" + _treatmentIndex);
+    const deleteHistoryButton = document.getElementById("deleteHistory" + _treatmentIndex);
+    const isEditFlag = document.getElementById("isEdit" + _treatmentIndex);
+
+    if (_treatmentIndex !== treatmentIndex) {
+        cancelEditHistoryButton.style.display = "none";
+        editHistoryButton.style.display = "inline-block";
+        deleteHistoryButton.style.display = "inline-block";
+    }
+    cancelButton.style.display = "none";
+    cancelButton.parentNode.classList.remove("col-md-2");
+    cancelButton.parentNode.classList.add("col-md-1");
+    isEditFlag.value = "false";
+    expressionInputA.parentNode.classList.remove("col-md-9");
+    expressionInputA.parentNode.classList.add("col-md-10");
+    if (treatmentFilterType !== "replace") {
+        expressionInputB.style.display = "none";
+        expressionInputB.parentNode.classList.remove("d-flex");
+    } else {
+        expressionInputB.style.display = "block";
+        expressionInputB.parentNode.classList.add("d-flex");
+        expressionInputB.classList.add("unround");
+        expressionInputB.classList.add("unround-left");
+        expressionInputA.classList.add("unround");
+        expressionInputA.classList.add("unround-right");
+    }
+
+    // // Cancel buttons
+    // const cancelHistoryButtons = document.querySelectorAll(".btn.btn-cancel");
+    // cancelHistoryButtons.forEach((button) => {
+    //     button.style.display = "none";
+    // });
+    // const cancelButtons = document.querySelectorAll(".btn.btn-danger");
+    // cancelButtons.forEach((button) => {
+    //     button.style.display = "none";
+    //     button.parentNode.classList.remove("col-md-2");
+    //     button.parentNode.classList.add("col-md-1");
+    // });
+    // // Edit and delete buttons
+    // const editButtons = document.querySelectorAll(".btn.btn-edit");
+    // const deleteButtons = document.querySelectorAll(".btn.btn-delete");
+    // editButtons.forEach((button) => {
+    //     button.style.display = "inline-block";
+    // });
+    // deleteButtons.forEach((button) => {
+    //     button.style.display = "inline-block";
+    // });
+    // // Expression inputs
+    // const expressionInputs = document.querySelectorAll(".expression-input-b.form-control");
+    // expressionInputs.forEach((input) => {
+    //     input.parentNode.classList.remove("col-md-9");
+    //     input.parentNode.classList.add("col-md-10");
+    //     if (treatmentFilterType !== "replace") {
+    //         input.style.display = "none";
+    //     } else {
+    //         const expressionInputA = document.getElementById("expressionInputA" + _treatmentIndex);
+    //         input.style.display = "block";
+    //         input.parentNode.classList.add("d-flex");
+    //         expressionInputA.classList.add("unround");
+    //         input.classList.add("unround");
+    //         expressionInputA.classList.add("unround-right");
+    //         input.classList.add("unround-left");
+    //     }
+    // });
+    // // Set all hidden edit flags to false
+    // const isEditFlags = document.querySelectorAll(".hid.hid-edit");
+    // isEditFlags.forEach((flag) => {
+    //     flag.value = "false";
+    //     flag.parentNode.classList.remove("d-flex");
+    // });
 }
 // #endregion
