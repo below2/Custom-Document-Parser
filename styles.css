@@ -9,6 +9,12 @@
   --gray-2: #818488ff;
   --battleship-gray: #8c8f93ff;
   --white: #ffffffff;
+
+  --tyrian-purple: #5f0f40ff;
+  --carmine: #9a031eff;
+  --ut-orange: #fb8b24ff;
+  --spanish-orange: #e36414ff;
+  --midnight-green: #0f4c5cff;
 }
 
 * {
@@ -197,6 +203,7 @@ th {
 
 td {
   color: var(--white);
+  white-space: pre-wrap;
   word-wrap: break-word;
 }
 
@@ -211,6 +218,9 @@ th {
 
 .treatment-type-container.disabled {
   cursor: not-allowed !important;
+}
+
+.treatment-type-container.disabled .treatment-type {
   pointer-events: none;
 }
 
