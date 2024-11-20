@@ -16,18 +16,53 @@
 </head>
 
 <body>
-  <div class="main-container container-fluid dark-theme">
+  <div class="main-header">
+    <div class="main-header-title">
+      <i class="fa-solid fa-code-compare"></i>
+      <span>Custom Document Parser</span>
+    </div>
+    <div class="main-header-dropdown-container btn-group">
+      <div class="main-header-dropdown">
+        <button type="button" class="export-dropdown-button btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          Export
+        </button>
+        <div class="dropdown-menu dropdown-menu-right">
+          <button class="dropdown-item" type="button">Export</button>
+          <button class="dropdown-item" type="button">Export Configuration</button>
+        </div>
+      </div>
+      <div class="main-header-dropdown">
+        <button type="button" class="file-dropdown-button btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fa-solid fa-floppy-disk"></i>
+          File
+        </button>
+        <div class="dropdown-menu dropdown-menu-right">
+          <button class="dropdown-item" type="button">New</button>
+          <button class="dropdown-item" type="button">Reset</button>
+          <button class="dropdown-item" type="button">Save</button>
+          <button class="dropdown-item" type="button">Load Document</button>
+          <button class="dropdown-item" type="button">Load Configuration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="main-container dark-theme">
 
     <!-- History Section -->
-    <div class="history-container">
+    <div id="historyContainer" class="history-container open">
       <div id="historyList" class="list-group">
         <div class="history-header">
-          <h3>History</h3>
+          <h4>History</h4>
+          <i id="historyContainerToggle" class="fa-solid fa-bars" onclick="toggleHistoryContainer();"></i>
         </div>
       </div>
     </div>
 
     <div id="treatment0" class="content-container active">
+      <div class="table-header">
+        <h4>Output</h4>
+      </div>
       <!-- Table Section -->
       <div class="table-container">
         <div id="uploadArea" class="upload-area" ondrop="fileDropHandler(event);" ondragover="fileDragHandler(event);" ondragleave="fileDragLeaveHandler(event);">
@@ -50,85 +85,145 @@
       </div>
 
       <!-- Filter Section -->
-      <div class="filter-container card p-3">
+      <div class="filter-container p-3">
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" href="#operationsTab0" data-toggle="tab">Operations</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#matchOptionsTab0" data-toggle="tab">Match Options</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#tableOptionsTab0" data-toggle="tab">Table Options</a>
+          </li>
+        </ul>
         
-        <div class="row mb-3">
-          <div class="operation-label-container col-md-1">
-            <label class="operation-label">Operation:</label>
+        <div class="tab-content">
+          <!-- Operations -->
+          <div id="operationsTab0" class="tab-pane fade show active">
+            <div class="row mb-3 mt-3">
+              <div class="label-container col-md-1">
+                <label class="operation-label">Operation:</label>
+              </div>
+              
+              <div class="col-md-11">
+                <div id="treatmentTypeContainer0" class="treatment-type-container btn-group btn-group-toggle disabled" data-toggle="buttons">
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="removeFilter0" autocomplete="off" filter-type="remove" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Remove
+                  </label>
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="extractFilter0" autocomplete="off" filter-type="extract" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Extract
+                  </label>
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="replaceFilter0" autocomplete="off" filter-type="replace" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Find/Replace
+                  </label>
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="splitFilter0" autocomplete="off" filter-type="split" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Split
+                  </label>
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="combineFilter0" autocomplete="off" filter-type="combine" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Combine
+                  </label>
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="uppercaseFilter0" autocomplete="off" filter-type="uppercase" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Uppercase
+                  </label>
+                  <label class="treatment-type btn btn-outline-secondary">
+                    <input type="radio" id="lowercaseFilter0" autocomplete="off" filter-type="lowercase" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Lowercase
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div class="col-md-11">
-            <div id="treatmentTypeContainer0" class="treatment-type-container btn-group btn-group-toggle disabled" data-toggle="buttons">
-              <label class="treatment-type btn btn-outline-secondary">
-                <input type="radio" id="removeFilter0" autocomplete="off" filter-type="remove" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Remove
-              </label>
-              <label class="treatment-type btn btn-outline-secondary">
-                <input type="radio" id="extractFilter0" autocomplete="off" filter-type="extract" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Extract
-              </label>
-              <label class="treatment-type btn btn-outline-secondary">
-                <input type="radio" id="replaceFilter0" autocomplete="off" filter-type="replace" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Find/Replace
-              </label>
-              <label class="treatment-type btn btn-outline-secondary">
-                <input type="radio" id="splitFilter0" autocomplete="off" filter-type="split" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Split
-              </label>
-              <label class="treatment-type btn btn-outline-secondary">
-                <input type="radio" id="combineFilter0" autocomplete="off" filter-type="combine" data-treatment-index="0" onchange="setFilterType(event);filterPreview(event);"> Combine
-              </label>
+          <!-- Match Options -->
+          <div id="matchOptionsTab0" class="tab-pane fade">
+            <div class="row mb-3 mt-3">
+              <div class="label-container col-md-1">
+                <label class="option-label">Match:</label>
+              </div>
+              
+              <div class="col-md-11 d-flex">
+                <div id="matchOptionTypeContainer0" class="match-option-type-container btn-group btn-group-toggle disabled" data-toggle="buttons">
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="allOption0" autocomplete="off" match-option-type="all" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> All
+                  </label>
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="firstOption0" autocomplete="off" match-option-type="first" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> First
+                  </label>
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="firstNOption0" autocomplete="off" match-option-type="firstN" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> First N
+                  </label>
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="lastOption0" autocomplete="off" match-option-type="last" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> Last
+                  </label>
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="lastNOption0" autocomplete="off" match-option-type="lastN" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> Last N
+                  </label>
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="evenOption0" autocomplete="off" match-option-type="even" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> Even
+                  </label>
+                  <label class="match-option-type btn btn-outline-secondary">
+                    <input type="radio" id="oddOption0" autocomplete="off" match-option-type="odd" data-treatment-index="0" onchange="setMatchOption(event);filterPreview(event);"> Odd
+                  </label>
+                </div>
+
+                <div id="matchOptionInputContainer0" class="match-option-input-container" style="display: none;">
+                  <input type="text" id="matchOptionInput0" class="form-control text-white unround-left" placeholder="" match-option-type="" data-treatment-index="0" oninput="filterPreview(event);"/>
+                </div>
+              </div>
+
+              <div id="matchOptionCancelContainer0" class="action-button-container col-md-2" style="display: none;">
+                <button type="button" id="matchOptionCancel0" class="cancel-match-option-button btn btn-danger" data-treatment-index="0" onclick="cancelMatchOption(event);"><i class="fa-solid fa-xmark" data-treatment-index="0" onclick="cancelMatchOption(event)"></i></button>
+              </div>
+            </div>
+          </div>
+          <!-- Table Options -->
+          <div id="tableOptionsTab0" class="tab-pane fade">
+            <div class="row mb-3 mt-3">
+              <div class="label-container col-md-1">
+                <label class="option-label">Match:</label>
+              </div>
+
+              <div class="col-md-11">
+                <div id="tableOptionTypeContainer0" class="table-option-type-container btn-group btn-group-toggle disabled" data-toggle="buttons">
+                  <label class="table-option-type btn btn-outline-secondary">
+                    <input type="radio" id="tableOption0" autocomplete="off" table-option-type="table" data-treatment-index="0" onchange="setTableOption(event);filterPreview(event);"> Table
+                  </label>
+                  <label class="table-option-type btn btn-outline-secondary">
+                    <input type="radio" id="rowsOption0" autocomplete="off" table-option-type="rows" data-treatment-index="0" onchange="setTableOption(event);filterPreview(event);"> Rows
+                  </label>
+                  <label class="table-option-type btn btn-outline-secondary">
+                    <input type="radio" id="columnsOption0" autocomplete="off" table-option-type="columns" data-treatment-index="0" onchange="setTableOption(event);filterPreview(event);"> Columns
+                  </label>
+                  <label class="table-option-type btn btn-outline-secondary">
+                    <input type="radio" id="cellsOption0" autocomplete="off" table-option-type="cells" data-treatment-index="0" onchange="setTableOption(event);filterPreview(event);"> Cells
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         
-        <div class="row mb-3">
-          <div class="expression-label-container col-md-1">
+        <!-- Input -->
+        <div class="row">
+          <div class="label-container col-md-1">
             <label id="expressionLabel0" class="expression-label">Expression:</label>
           </div>
           
-          <div class="col-md-10">
-            <input type="text" id="expressionInputA0" class="expression-input-a form-control text-white" placeholder="Select an operation to begin parsing" filter-type="" data-treatment-index="0" oninput="filterPreview(event);" disabled/>
+          <div class="col-md-9">
+            <input type="text" id="expressionInputA0" class="expression-input-a form-control text-white" placeholder="Select an operation to begin parsing" filter-type="" match-option-type="" table-option-type="" data-treatment-index="0" oninput="filterPreview(event);" disabled/>
             <input type="text" id="expressionInputB0" class="expression-input-b form-control text-white" placeholder="" data-treatment-index="0" style="display: none;"/>
           </div>
           
-          <div class="action-button-container col-md-1">
+          <div class="action-button-container col-md-2 d-flex">
             <input type="hidden" id="isEdit0" class="hid hid-edit" data-treatment-index="0" value="false">
-            <button type="button" id="parseButton0" class="action-button btn btn-success" filter-type="" data-treatment-index="0" onclick="determineParse(event);">Parse</button>
-            <button type="button" id="cancelButton0" class="action-button btn btn-danger ml-2" data-treatment-index="0" onclick="cancelEditHistory(event);" style="display: none;">Cancel</button>
+            <button type="button" id="newLineButton0" class="action-button new-line-button btn btn-primary mr-2" data-treatment-index="0" onclick=""><i class="fa-solid fa-plus"></i><span class="new-line-long"> New Line</span><span class="new-line-short"> \n</span></button>
+            <button type="button" id="parseButton0" class="action-button parse-button btn btn-success" filter-type="" match-option-type="" table-option-type="" data-treatment-index="0" onclick="determineParse(event);">Parse</button>
+            <button type="button" id="cancelButton0" class="action-button cancel-button btn btn-danger ml-2" data-treatment-index="0" onclick="cancelEditHistory(event);" style="display: none;">Cancel</button>
           </div>
         </div>
         
       </div>
-
-      <!-- Old Filter Section -->
-      <!-- <div class="filter-container card p-3">
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="remove-filter0" class="filter-label">Remove:</label>
-            <input type="text" class="form-control text-white" id="remove-filter0" placeholder="Enter text to remove" filter-type="remove-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
-          </div>
-          <div class="col-md-6">
-            <label for="parse-filter0" class="filter-label">Parse out:</label>
-            <input type="text" class="form-control text-white" id="parse-filter0" placeholder="Enter text to parse out" filter-type="parse-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
-          </div>
-        </div>
-
-        <div class="row mb-3">
-          <div class="col-md-6">
-            <label for="find-filter0" class="filter-label">Find:</label>
-            <input type="text" class="form-control text-white" id="find-filter0" placeholder="Enter text to find" filter-type="find-filter" data-treatment-index="0" oninput="filterPreview(event);"/>
-          </div>
-          <div class="col-md-6">
-            <label for="replace-filter0" class="filter-label">Replace:</label>
-            <input type="text" class="form-control text-white" id="replace-filter0" placeholder="Enter replacement text" />
-          </div>
-        </div>
-
-        <div class="d-flex justify-content-end">
-          <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display: none" onchange="handleFileLoad(event);"/>
-          <input type="hidden" id="isEdit0" data-treatment-index="0" class="hid hid-edit" value="false">
-          <button type="button" id="parseButton0" data-treatment-index="0" class="btn btn-primary mr-2" onclick="determineParse(event);">Parse</button>
-          <button type="button" id="loadDocumentButton" class="btn btn-secondary" onclick="document.getElementById('file-input').click();">Load Document</button>
-          <button type="button" id="cancelButton0" data-treatment-index="0" class="btn btn-danger ml-2" style="display: none" onclick="cancelEditHistory(event);">Cancel</button>
-        </div>
-      </div> -->
     </div>
   </div>
 
